@@ -1,0 +1,28 @@
+# The 10 sample queries for the >=8/10 success criterion.
+#
+# Deliberately mixed by type: CLIP is strong on object and scene queries and weaker
+# on mood and compound ones, so the set doubles as evidence for the accuracy notes.
+#
+# expect_substring: if set, run_eval.py auto-judges by looking for that substring in
+# the filename of any top result. Leave it out for queries judged by eye.
+queries:
+  - query: "a photo with a laptop or computer"
+    type: object
+  - query: "a coffee cup on a desk"
+    type: object
+  - query: "an outdoor team photo"
+    type: scene
+  - query: "people working together in an office"
+    type: scene
+  - query: "a city street"
+    type: scene
+  - query: "a bright energetic photo"
+    type: mood
+  - query: "a calm minimalist shot with lots of empty space"
+    type: mood
+  - query: "people outdoors smiling"
+    type: compound
+  - query: "someone holding a product up to the camera"
+    type: compound
+  - query: "a close-up of food"
+    type: object
