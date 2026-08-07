@@ -34,4 +34,4 @@ TAG_MIN_SCORE = 0.22   # below this a tag is kept but flagged needs_review
 
 # --- Search ---
 SEARCH_TOP_K = 12
-SEARCH_MIN_SCORE = 0.20  # below this we report "no strong match"
+SEARCH_MIN_SCORE = 0.15  # below this we report "no strong match"; calibrated from first real eval run
