@@ -103,8 +103,17 @@ with browse_tab:
         r for r in records
         if not tag_filter or any(t["tag"] == tag_filter for t in r.get("tags", []))
     ]
-    st.write(f"{len(shown)} asset(s)")
-    show_grid([(r, None) for r in shown[:60]])
+    per_page = 60
+    pages = max(1, (len(shown) + per_page - 1) // per_page)
+    page = 1
+    if pages > 1:
+        page = st.number_input(
+            f"Page (1-{pages})", min_value=1, max_value=pages, value=1, step=1
+        )
+    start = (page - 1) * per_page
+    window = shown[start : start + per_page]
+    st.write(f"{len(shown)} asset(s) — showing {start + 1}-{start + len(window)}")
+    show_grid([(r, None) for r in window])
 
 with insight_tab:
     counts = Counter()
