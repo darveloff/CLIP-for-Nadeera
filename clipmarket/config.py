@@ -29,8 +29,18 @@ KEYFRAME_INTERVAL_S = 3.0
 KEYFRAME_DEDUP_THRESHOLD = 0.95
 
 # --- Tagging ---
-TAG_TOP_N = 6          # candidate tags kept per asset, per category pass
-TAG_MIN_SCORE = 0.22   # below this a tag is kept but flagged needs_review
+# Tags are ranked per category so every category contributes, rather than a few
+# globally "loud" tags filling every slot.
+TAG_TOP_N_PER_CATEGORY = 2
+TAG_MIN_SCORE = 0.22   # raw-cosine floor, only used in the un-normalized fallback
+
+# Raw CLIP cosines are not comparable between different tag prompts: some prompts sit
+# closer to every image regardless of content. We therefore score each tag against its
+# own distribution across the library (z-score) and rank on that.
+TAG_MIN_Z = 0.5        # below this a tag is kept but flagged needs_review
+# Below this many assets the per-tag statistics are too noisy to trust, so we fall
+# back to ranking on raw cosine.
+TAG_NORM_MIN_ASSETS = 20
 
 # --- Search ---
 SEARCH_TOP_K = 12

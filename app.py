@@ -30,6 +30,7 @@ def tag_chips(record: dict) -> str:
     parts = []
     for t in record.get("tags", [])[:4]:
         mark = " ?" if t["needs_review"] else ""
+        mark += " *" if t.get("low_confidence") else ""
         parts.append(f"{t['tag']} ({t['score']:.2f}){mark}")
     return " · ".join(parts)
 

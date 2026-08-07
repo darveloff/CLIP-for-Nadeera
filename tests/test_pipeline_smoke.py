@@ -9,6 +9,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from collections import Counter
+
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -72,9 +74,16 @@ def main() -> int:
 
         tags = tag.tag_all(vecs)
         assert len(tags) == len(assets)
-        assert all(len(t) == config.TAG_TOP_N for t in tags)
-        assert all({"tag", "category", "score", "needs_review"} <= set(t[0]) for t in tags)
-        print(f"PASS tag: {config.TAG_TOP_N} tags/asset, "
+        from clipmarket.vocabulary import CATEGORIES
+        expected = len(CATEGORIES) * config.TAG_TOP_N_PER_CATEGORY
+        assert all(len(t) == expected for t in tags), "expected top-N from every category"
+        assert all({"tag", "category", "score", "z", "needs_review", "low_confidence"}
+                   <= set(t[0]) for t in tags)
+        for ts in tags:
+            per_cat = Counter(t["category"] for t in ts)
+            assert set(per_cat) == set(CATEGORIES), "a category produced no tags"
+            assert max(per_cat.values()) <= config.TAG_TOP_N_PER_CATEGORY
+        print(f"PASS tag: {expected} tags/asset across {len(CATEGORIES)} categories, "
               f"{sum(t['needs_review'] for ts in tags for t in ts)} flagged for review")
 
         records = [a.to_dict() | {"tags": t} for a, t in zip(assets, tags)]
