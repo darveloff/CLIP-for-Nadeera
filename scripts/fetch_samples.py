@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""Download a small set of freely-licensed sample photos so the pipeline is runnable
-before the real marketing library is available.
+"""Download a set of freely-licensed sample photos so the pipeline is runnable before
+the real marketing library is available.
 
-Images come from picsum.photos (public-domain Unsplash mirror). Filenames encode the
-intended content so eval expectations stay readable; replace assets/ with the real
-library and rebuild when it arrives.
+Images come from picsum.photos (public-domain Unsplash mirror). The valid photo ids are
+fetched from the picsum listing API rather than hardcoded, so the set is reproducible
+without guessing which ids exist.
+
+Filenames are deliberately neutral (sample_001.jpg ...). We do not know what these
+photos depict, and naming them as though we did makes eval output misleading -- judge
+these by looking at them, not by their names. Real assets keep their own filenames.
 """
 import argparse
+import json
 import sys
 import urllib.request
 from pathlib import Path
@@ -15,32 +20,42 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from clipmarket import config
 
-# (filename stem, picsum photo id) -- ids chosen for varied subject matter
-SAMPLES = [
-    ("desk_laptop_01", 0), ("desk_laptop_02", 48), ("office_people_01", 3),
-    ("office_people_02", 20), ("nature_landscape_01", 10), ("nature_landscape_02", 15),
-    ("city_street_01", 122), ("city_street_02", 164), ("food_closeup_01", 292),
-    ("food_closeup_02", 312), ("coffee_desk_01", 30), ("coffee_desk_02", 42),
-    ("people_outdoors_01", 64), ("people_outdoors_02", 91), ("portrait_01", 65),
-    ("portrait_02", 177), ("product_object_01", 250), ("product_object_02", 367),
-    ("minimal_bright_01", 106), ("minimal_bright_02", 175), ("dark_moody_01", 129),
-    ("dark_moody_02", 143), ("interior_home_01", 155), ("interior_home_02", 219),
-    ("animal_01", 200), ("animal_02", 237), ("building_01", 101), ("building_02", 142),
-    ("event_crowd_01", 287), ("event_crowd_02", 334),
-]
+LIST_URL = "https://picsum.photos/v2/list?page={page}&limit=100"
+
+
+def picsum_ids(count: int) -> list[str]:
+    """Fetch `count` valid photo ids, in listing order (stable across runs)."""
+    ids: list[str] = []
+    page = 1
+    while len(ids) < count:
+        with urllib.request.urlopen(LIST_URL.format(page=page)) as r:
+            batch = json.load(r)
+        if not batch:
+            break
+        ids.extend(str(p["id"]) for p in batch)
+        page += 1
+    return ids[:count]
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default=str(config.ASSETS_DIR))
+    ap.add_argument("--count", type=int, default=100)
     ap.add_argument("--size", default="640")
     args = ap.parse_args()
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+
+    try:
+        ids = picsum_ids(args.count)
+    except Exception as e:
+        print(f"Could not reach the picsum listing API: {e}")
+        return
+
     ok = 0
-    for stem, pid in SAMPLES:
-        dest = out / f"{stem}.jpg"
+    for n, pid in enumerate(ids, start=1):
+        dest = out / f"sample_{n:03d}.jpg"
         if dest.exists():
             ok += 1
             continue
@@ -48,10 +63,11 @@ def main() -> None:
         try:
             urllib.request.urlretrieve(url, dest)
             ok += 1
-            print(f"  {dest.name}")
+            if n % 10 == 0:
+                print(f"  {n}/{len(ids)}")
         except Exception as e:  # network is best-effort; keep going
             print(f"  ! {dest.name}: {e}")
-    print(f"\n{ok}/{len(SAMPLES)} sample images in {out}")
+    print(f"\n{ok}/{len(ids)} sample images in {out}")
 
 
 if __name__ == "__main__":
