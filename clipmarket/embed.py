@@ -5,6 +5,7 @@ Output contract, read by every other module:
   data/metadata.json    list of asset records (see ingest.Asset + tags added by tag.py)
 """
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -43,11 +44,27 @@ def build(assets: list[Asset]) -> tuple[list[Asset], np.ndarray]:
     return _dedup_keyframes(assets, vecs)
 
 
+def _atomic_write(path: Path, write_fn) -> None:
+    """Write via a same-directory temp file + os.replace so a rebuild interrupted
+    mid-sync (e.g. on a Google Drive FUSE mount) can never leave a half-written,
+    corrupt file in place. ``write_fn`` receives the exact temp path to write to,
+    with the same suffix as ``path`` (numpy appends ".npy" otherwise).
+    """
+    tmp_path = path.with_name(f"{path.name}.tmp{os.getpid()}{path.suffix}")
+    write_fn(tmp_path)
+    os.replace(tmp_path, path)
+
+
 def save(assets: list[Asset], vecs: np.ndarray, records: list[dict] | None = None) -> None:
     config.DATA_DIR.mkdir(parents=True, exist_ok=True)
-    np.save(config.EMBEDDINGS_PATH, vecs)
+
+    _atomic_write(config.EMBEDDINGS_PATH, lambda tmp: np.save(tmp, vecs))
+
     payload = records if records is not None else [a.to_dict() for a in assets]
-    config.METADATA_PATH.write_text(json.dumps(payload, indent=2))
+    _atomic_write(
+        config.METADATA_PATH,
+        lambda tmp: tmp.write_text(json.dumps(payload, indent=2)),
+    )
     print(f"Wrote {vecs.shape[0]} embeddings -> {config.EMBEDDINGS_PATH}")
     print(f"Wrote metadata -> {config.METADATA_PATH}")
 

@@ -39,6 +39,42 @@ Videos are decoded with OpenCV and sampled into keyframes (one every
 `KEYFRAME_INTERVAL_S` seconds); near-identical frames are dropped after embedding. Each
 keyframe is indexed as an ordinary asset that links back to its source video.
 
+## Running in Colab with Google Drive
+
+The "database" here is just files (`data/embeddings.npy`, `data/metadata.json`, and
+`assets/`) — nothing to install. In Colab, `/content` is wiped on every session, so
+point those directories at a mounted Drive folder to keep a consistent library across
+sessions instead of re-ingesting and re-embedding from scratch each time.
+
+```python
+from google.colab import drive
+drive.mount('/content/drive')
+
+import os
+os.environ["CLIPMARKET_ASSETS_DIR"] = "/content/drive/MyDrive/clipmarket/assets"
+os.environ["CLIPMARKET_DATA_DIR"] = "/content/drive/MyDrive/clipmarket/data"
+os.environ["CLIPMARKET_DOCS_DIR"] = "/content/drive/MyDrive/clipmarket/docs"
+```
+
+Run this **before** importing `clipmarket` or launching Streamlit (env vars are read
+once, at import time, in `clipmarket/config.py`). Both `ASSETS_DIR` and `DATA_DIR` need
+to move together: asset/keyframe paths are stored as absolute strings inside
+`metadata.json`, so if the index lives on Drive but the raw assets stay local, those
+paths break the moment the local runtime resets.
+
+First session: mount Drive, set the env vars, put files in `CLIPMARKET_ASSETS_DIR`
+(or run `scripts/fetch_samples.py`), then `python scripts/build_index.py` to build the
+index directly onto Drive.
+
+Every later session: mount Drive, set the same env vars, and go straight to
+`streamlit run app.py` — the index from last time is already there. Re-run
+`build_index.py` only when the asset library changes; the running Streamlit app picks
+up a fresh index automatically (it watches the embeddings file's modification time).
+
+If you're running Streamlit through a cloud tunnel/service, keep the tunnel process and
+the Colab runtime that mounted Drive in the same session/kernel — Drive is mounted into
+that runtime's filesystem, not globally.
+
 ## Layout
 
 | Path | Role |

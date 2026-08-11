@@ -11,14 +11,24 @@ from clipmarket.vocabulary import CATEGORIES, VOCABULARY
 st.set_page_config(page_title="Marketing Asset Search", layout="wide")
 
 
+def _index_cache_key() -> float:
+    """mtime of the embeddings file, so a rebuild (e.g. from a separate Colab cell
+    writing to the same Google-Drive-backed data dir) invalidates the cache instead
+    of the app silently serving a stale in-memory index all session long.
+    """
+    return config.EMBEDDINGS_PATH.stat().st_mtime if config.EMBEDDINGS_PATH.exists() else 0.0
+
+
 @st.cache_resource
-def load_index():
+def load_index(_cache_key: float):
     return embed.load()
 
 
 @st.cache_data
-def run_query(query: str, top_k: int, min_score: float, tag_filter: str | None):
-    records, vecs = load_index()
+def run_query(
+    query: str, top_k: int, min_score: float, tag_filter: str | None, _cache_key: float
+):
+    records, vecs = load_index(_cache_key)
     results = search(
         query, top_k=top_k, min_score=min_score,
         records=records, vecs=vecs, tag_filter=tag_filter,
@@ -58,7 +68,8 @@ def show_grid(items, columns: int = 4):
 
 
 try:
-    records, vecs = load_index()
+    index_cache_key = _index_cache_key()
+    records, vecs = load_index(index_cache_key)
 except SystemExit as e:
     st.error(str(e))
     st.stop()
@@ -88,7 +99,7 @@ with search_tab:
         placeholder="e.g. an outdoor team photo, bright and energetic",
     )
     if query:
-        items = run_query(query, top_k, min_score, tag_filter)
+        items = run_query(query, top_k, min_score, tag_filter, index_cache_key)
         if not items:
             st.info(
                 "No strong match in the library for that query. Try rephrasing, or "
