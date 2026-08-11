@@ -4,12 +4,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-ASSETS_DIR = ROOT / "assets"
-DATA_DIR = ROOT / "data"
+# Assets, the built index, and generated docs default to living inside the repo, but can
+# be redirected -- e.g. to a mounted Google Drive folder in Colab -- so the library
+# survives past the lifetime of the runtime/container.
+ASSETS_DIR = Path(os.environ.get("CLIPMARKET_ASSETS_DIR", ROOT / "assets"))
+DATA_DIR = Path(os.environ.get("CLIPMARKET_DATA_DIR", ROOT / "data"))
 KEYFRAMES_DIR = DATA_DIR / "keyframes"
 EMBEDDINGS_PATH = DATA_DIR / "embeddings.npy"
 METADATA_PATH = DATA_DIR / "metadata.json"
-DOCS_DIR = ROOT / "docs"
+DOCS_DIR = Path(os.environ.get("CLIPMARKET_DOCS_DIR", ROOT / "docs"))
 EVAL_QUERIES_PATH = ROOT / "eval" / "queries.yaml"
 
 # --- Model ---
