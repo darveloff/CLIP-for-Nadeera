@@ -75,6 +75,32 @@ If you're running Streamlit through a cloud tunnel/service, keep the tunnel proc
 the Colab runtime that mounted Drive in the same session/kernel — Drive is mounted into
 that runtime's filesystem, not globally.
 
+## Additional features
+
+- **Incremental rebuilds.** `python scripts/build_index.py --incremental` skips re-encoding
+  images whose source file hasn't changed since the last build (matched by path + mtime),
+  and reuses their previously computed tags. Videos are always reprocessed. There's also a
+  "Rebuild index now" button in the Streamlit sidebar that runs this for you and reloads.
+- **Corrupt-file pre-flight check.** Unreadable images/videos are detected and skipped
+  before the (expensive) CLIP encode step, with one consolidated report instead of errors
+  scattered through the run.
+- **Near-duplicate detection.** Every build flags near-identical assets across the whole
+  library (`DUPLICATE_THRESHOLD` in `config.py`), surfaced in the Insights tab and
+  `docs/insights.md` -- flagged for review, never auto-deleted.
+- **"Find similar" search.** Click "Find similar" under any result to search using that
+  asset's own embedding instead of typing a new query.
+- **Exclude terms.** The Search tab has an optional "Exclude" field -- results that also
+  strongly match the excluded phrase are pushed down rather than hard-filtered out.
+- **Group by video.** A sidebar checkbox rolls multiple matching keyframes from the same
+  clip into one card instead of scattering them across the results grid.
+- **Tag review.** The Review tab lists every asset with a flagged (`needs_review`) tag;
+  confirming a tag there persists the correction straight to `metadata.json` (no
+  re-embedding needed).
+- **CSV export.** Download buttons in the Search and Browse tabs export the current
+  results/library as CSV.
+- **Optional password gate.** Set `CLIPMARKET_APP_PASSWORD` to require a password before
+  the app shows anything -- useful once you're sharing a public tunnel URL.
+
 ## Layout
 
 | Path | Role |

@@ -18,6 +18,7 @@ class Asset:
     source: str                  # original file the asset came from
     source_video: str | None = None
     timestamp_s: float | None = None
+    mtime: float | None = None  # source file mtime, used to skip re-encoding on incremental builds
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -35,6 +36,50 @@ def discover(assets_dir: Path) -> tuple[list[Path], list[Path]]:
         elif ext in config.VIDEO_EXTS:
             videos.append(p)
     return images, videos
+
+
+def _is_readable_image(path: Path) -> bool:
+    try:
+        from PIL import Image
+
+        with Image.open(path) as im:
+            im.verify()
+        return True
+    except Exception:
+        return False
+
+
+def _is_readable_video(path: Path) -> bool:
+    import cv2
+
+    cap = cv2.VideoCapture(str(path))
+    ok = cap.isOpened()
+    cap.release()
+    return ok
+
+
+def preflight(images: list[Path], videos: list[Path]) -> tuple[list[Path], list[Path]]:
+    """Drop files that can't actually be decoded before spending time encoding the rest.
+
+    Cheap relative to CLIP encoding: PIL's ``verify()`` and OpenCV's ``isOpened()`` check
+    (decompresses the header, not every frame). Catching this here means a single bad
+    upload can't silently shrink the batch mid-encode, and gives one clear report of every
+    unreadable file instead of scattering `! could not decode` lines through the run.
+    """
+    good_images, bad_images = [], []
+    for p in images:
+        (good_images if _is_readable_image(p) else bad_images).append(p)
+
+    good_videos, bad_videos = [], []
+    for p in videos:
+        (good_videos if _is_readable_video(p) else bad_videos).append(p)
+
+    if bad_images or bad_videos:
+        print(f"Skipping {len(bad_images) + len(bad_videos)} unreadable file(s):")
+        for p in bad_images + bad_videos:
+            print(f"  ! {p.name} -- could not be decoded, excluded from this build")
+
+    return good_images, good_videos
 
 
 def extract_keyframes(video: Path, out_dir: Path) -> list[Asset]:
@@ -88,9 +133,10 @@ def build_pool(assets_dir: Path | None = None) -> list[Asset]:
     assets_dir = Path(assets_dir or config.ASSETS_DIR)
     images, videos = discover(assets_dir)
     print(f"Found {len(images)} images and {len(videos)} videos in {assets_dir}")
+    images, videos = preflight(images, videos)
 
     pool = [
-        Asset(id=p.stem, path=str(p), kind="image", source=str(p))
+        Asset(id=p.stem, path=str(p), kind="image", source=str(p), mtime=p.stat().st_mtime)
         for p in images
     ]
     for v in videos:
