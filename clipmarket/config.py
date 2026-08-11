@@ -45,6 +45,17 @@ TAG_MIN_Z = 0.5        # below this a tag is kept but flagged needs_review
 # back to ranking on raw cosine.
 TAG_NORM_MIN_ASSETS = 20
 
+# --- Duplicate detection (whole-pool, not just consecutive video keyframes) ---
+# Flagged, not auto-removed -- whether a genuine duplicate photo is unwanted is a
+# judgment call the tool shouldn't make silently for still images.
+DUPLICATE_THRESHOLD = 0.97
+# O(n^2) cosine comparisons; skip on libraries too large for that to be cheap rather
+# than silently stalling a build.
+DUPLICATE_MAX_ASSETS = 5000
+
 # --- Search ---
 SEARCH_TOP_K = 12
 SEARCH_MIN_SCORE = 0.15  # below this we report "no strong match"; calibrated from first real eval run
+# How strongly an "exclude" term penalizes a result. Only positive exclude-similarity is
+# subtracted (a result that's a poor match for the excluded term isn't rewarded further).
+SEARCH_EXCLUDE_WEIGHT = 1.0

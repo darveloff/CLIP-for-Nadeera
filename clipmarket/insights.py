@@ -5,6 +5,7 @@ usable by a marketing team rather than merely descriptive.
 """
 from collections import Counter
 from itertools import combinations
+from pathlib import Path
 
 from .vocabulary import CATEGORIES, VOCABULARY
 from . import config
@@ -90,6 +91,23 @@ def build_report(records) -> str:
         lines.append("")
         lines.append(f"- *So what:* {finding['so_what']}")
         lines.append(f"- *Action:* {finding['action']}")
+        lines.append("")
+
+    dupes = [r for r in records if r.get("near_duplicate_of")]
+    if dupes:
+        lines += [
+            "## Near-duplicate assets",
+            "",
+            f"{len(dupes)} asset(s) are near-identical (cosine >= "
+            f"{config.DUPLICATE_THRESHOLD}) to another asset already in the library. "
+            "Flagged for review, not removed --",
+            "confirm before deleting either side.",
+            "",
+        ]
+        for r in dupes[:20]:
+            lines.append(f"- `{Path(r['path']).name}` duplicates `{r['near_duplicate_of']}`")
+        if len(dupes) > 20:
+            lines.append(f"- ...and {len(dupes) - 20} more")
         lines.append("")
 
     unused = [t.name for t in VOCABULARY if counts[t.name] == 0]
