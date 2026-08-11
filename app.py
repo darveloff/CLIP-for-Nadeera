@@ -91,6 +91,24 @@ with st.sidebar:
         help="Results below this are hidden rather than padding the grid with weak matches.",
     )
 
+    st.divider()
+    st.header("Vocabulary")
+    st.caption(
+        "The fixed, closed tag list every asset is scored against -- this is the "
+        "complete set; tagging never produces anything outside it."
+    )
+    tag_counts = Counter(
+        t["tag"] for r in records for t in r.get("tags", []) if not t["needs_review"]
+    )
+    for cat in CATEGORIES:
+        cat_tags = [t for t in VOCABULARY if t.category == cat]
+        with st.expander(f"{cat.replace('_', ' ').title()} ({len(cat_tags)})"):
+            low_conf = cat in tagmod.LOW_CONFIDENCE_CATEGORIES
+            if low_conf:
+                st.caption("CLIP is known to be unreliable here -- always flagged for review.")
+            for t in cat_tags:
+                st.markdown(f"- {t.name} — *{tag_counts.get(t.name, 0)} confident matches*")
+
 search_tab, browse_tab, insight_tab = st.tabs(["Search", "Browse", "Insights"])
 
 with search_tab:
