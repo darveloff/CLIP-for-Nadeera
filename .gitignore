@@ -6,3 +6,7 @@ data/
 assets/*
 !assets/.gitkeep
 .streamlit/
+web/node_modules/
+web/.next/
+web/out/
+web/.turbo/
