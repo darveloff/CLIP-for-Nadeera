@@ -31,13 +31,39 @@ it: `export CLIPMARKET_PRETRAINED=/path/to/open_clip_pytorch_model.bin`.
 python scripts/build_index.py                 # --assets /some/other/folder
 # 3. Measure against the sample query set
 python scripts/run_eval.py
-# 4. Demo UI
+# 4. Demo UI (Streamlit)
 streamlit run app.py
+# 5. Or the Next.js web UI — see "Web UI" below
 ```
 
 Videos are decoded with OpenCV and sampled into keyframes (one every
 `KEYFRAME_INTERVAL_S` seconds); near-identical frames are dropped after embedding. Each
 keyframe is indexed as an ordinary asset that links back to its source video.
+
+## Web UI (Next.js)
+
+An editorial Next.js frontend lives in `web/`, talking to `server.py` (FastAPI wrapping
+the same `clipmarket` package Streamlit uses). Visual language follows the
+`minimalist-ui` skill: warm bone canvas, Newsreader headings, Geist body, flat 1px
+borders, muted pastel tags.
+
+```bash
+pip install -r requirements-web.txt   # fastapi + uvicorn; CLIP extras still come from requirements.txt
+cd web && npm install && cd ..
+
+# terminal 1 — API (seeds a small demo library if data/ is empty)
+python server.py
+
+# terminal 2 — UI
+cd web && npm run dev
+```
+
+Open `http://localhost:3000`. Search, Browse, Insights, and Review all work against the
+demo library without CLIP weights. When `data/embeddings.npy` exists and torch/open_clip
+are installed, `/search` and `/similar` switch to real CLIP ranking automatically.
+
+`CLIPMARKET_ASSETS_DIR` / `CLIPMARKET_DATA_DIR` still apply — point them at Drive (Colab)
+or a Render disk the same way as Streamlit.
 
 ## Running in Colab with Google Drive
 
@@ -114,6 +140,8 @@ that runtime's filesystem, not globally.
 | `clipmarket/search.py` | Query → ranked results, with a "no strong match" floor |
 | `clipmarket/insights.py` | Aggregates tags into `docs/insights.md` |
 | `app.py` | Streamlit search / browse / insights UI |
+| `server.py` | FastAPI wrapper used by the Next.js UI |
+| `web/` | Next.js frontend (Search / Browse / Insights / Review) |
 | `eval/queries.yaml` | The 10 sample queries backing the ≥8/10 criterion |
 | `tests/test_pipeline_smoke.py` | End-to-end run with a stubbed encoder (no weights needed) |
 
