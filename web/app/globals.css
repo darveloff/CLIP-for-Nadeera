@@ -14,11 +14,11 @@
   --pale-green-ink: #346538;
   --pale-yellow: #fbf3db;
   --pale-yellow-ink: #956400;
-  --font-sans: var(--font-geist-sans), "SF Pro Display", "Helvetica Neue", sans-serif;
-  --font-serif: var(--font-newsreader), "Instrument Serif", Georgia, serif;
-  --font-mono: var(--font-geist-mono), "SF Mono", ui-monospace, monospace;
 }
 
+/* Map Tailwind font-* utilities to next/font CSS variables (set on <html>).
+   Do not alias --font-sans to itself — that loop made every face fall back
+   to Times/Arial. */
 @theme inline {
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
@@ -33,17 +33,25 @@
   --color-pale-green-ink: var(--pale-green-ink);
   --color-pale-yellow: var(--pale-yellow);
   --color-pale-yellow-ink: var(--pale-yellow-ink);
-  --font-sans: var(--font-sans);
-  --font-serif: var(--font-serif);
-  --font-mono: var(--font-mono);
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-newsreader);
+  --font-mono: var(--font-geist-mono);
 }
 
 html,
 body {
   background: var(--canvas);
   color: var(--ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-geist-sans), "Helvetica Neue", Helvetica, sans-serif;
   line-height: 1.6;
+}
+
+.font-serif {
+  font-family: var(--font-newsreader), "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+}
+
+.font-mono {
+  font-family: var(--font-geist-mono), "SF Mono", ui-monospace, Menlo, monospace;
 }
 
 body::before {
